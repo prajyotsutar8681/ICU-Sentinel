@@ -22,8 +22,7 @@ import socketService from '../../services/socketService';
 const ICU_ID =
     'fd08a170-42c3-4989-8b63-bf61c7295cd5';
 
-const API_URL =
-    'http://10.0.2.2:3000';
+const API_URL = 'https://icu-sentinel.onrender.com';;
 
 type Props = NativeStackScreenProps<
     RootStackParamList,

@@ -1,6 +1,6 @@
 import { io, Socket } from 'socket.io-client';
 
-const SOCKET_URL = 'http://10.0.2.2:3000';
+const SOCKET_URL = 'https://icu-sentinel.onrender.com';
 
 export type AlertPayload = {
     id: string;

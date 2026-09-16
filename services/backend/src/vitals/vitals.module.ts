@@ -11,6 +11,9 @@ import { VitalsService } from './vitals.service.js';
         VitalsService,
         VitalsGateway,
     ],
-    exports: [VitalsService],
+    exports: [
+        VitalsService,
+        VitalsGateway,
+    ],
 })
 export class VitalsModule { }

@@ -31,8 +31,7 @@ type Props = NativeStackScreenProps<
     'PatientDetail'
 >;
 
-const API_URL =
-    'http://10.0.2.2:3000';
+const API_URL = 'https://icu-sentinel.onrender.com';;
 
 const HOSPITAL_ID =
     '05f7450b-2100-4ce8-8418-df7dd2b6b8d5';

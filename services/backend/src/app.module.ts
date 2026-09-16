@@ -7,6 +7,7 @@ import { HospitalModule } from './hospital/hospital.module.js';
 import { IcuModule } from './icu/icu.module.js';
 import { VitalsModule } from './vitals/vitals.module.js';
 import { AlertModule } from './alert/alert.module.js';
+import { DemoSimulatorModule } from './demo-simulator/demo-simulator.module.js';
 @Module({
   imports: [
     PrismaModule,
@@ -15,6 +16,7 @@ import { AlertModule } from './alert/alert.module.js';
     PatientModule,
     VitalsModule,
     AlertModule,
+    DemoSimulatorModule,
   ],
   controllers: [AppController],
   providers: [AppService],
