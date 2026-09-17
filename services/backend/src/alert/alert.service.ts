@@ -1,4 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import {
+    BadRequestException,
+    Injectable,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 type VitalInput = {
@@ -13,30 +16,34 @@ type VitalInput = {
 
 @Injectable()
 export class AlertService {
-    constructor(private readonly prisma: PrismaService) { }
+    constructor(
+        private readonly prisma: PrismaService,
+    ) { }
 
     async evaluateVital(
         patientId: string,
         vital: VitalInput,
     ) {
-        const patient = await this.prisma.patient.findUnique({
-            where: { id: patientId },
-            select: {
-                id: true,
-                hospitalId: true,
-            },
-        });
+        const patient =
+            await this.prisma.patient.findUnique({
+                where: { id: patientId },
+                select: {
+                    id: true,
+                    hospitalId: true,
+                },
+            });
 
         if (!patient) {
             return [];
         }
 
-        const rules = await this.prisma.alertRule.findMany({
-            where: {
-                hospitalId: patient.hospitalId,
-                isActive: true,
-            },
-        });
+        const rules =
+            await this.prisma.alertRule.findMany({
+                where: {
+                    hospitalId: patient.hospitalId,
+                    isActive: true,
+                },
+            });
 
         const createdAlerts = [];
 
@@ -62,11 +69,6 @@ export class AlertService {
                 continue;
             }
 
-            /*
-             * Prevent duplicate ACTIVE alerts for the same
-             * patient/rule. A new alert is generated only after
-             * the previous one is no longer ACTIVE.
-             */
             const existingAlert =
                 await this.prisma.alert.findFirst({
                     where: {
@@ -91,23 +93,140 @@ export class AlertService {
                 ? 'below'
                 : 'above';
 
-            const alert = await this.prisma.alert.create({
-                data: {
-                    patientId,
-                    ruleId: rule.id,
-                    severity: rule.severity,
-                    status: 'ACTIVE',
-                    vitalType: rule.vitalType,
-                    message: `${rule.name}: ${rule.vitalType} is ${direction} the configured threshold`,
-                    triggeredValue: value,
-                    thresholdValue,
-                },
-            });
+            const alert =
+                await this.prisma.alert.create({
+                    data: {
+                        patientId,
+                        ruleId: rule.id,
+                        severity: rule.severity,
+                        status: 'ACTIVE',
+                        vitalType: rule.vitalType,
+                        message: `${rule.name}: ${rule.vitalType} is ${direction} the configured threshold`,
+                        triggeredValue: value,
+                        thresholdValue,
+                    },
+                });
 
             createdAlerts.push(alert);
         }
 
         return createdAlerts;
+    }
+
+    async getPatientAlerts(
+        patientId: string,
+    ) {
+        return this.prisma.alert.findMany({
+            where: {
+                patientId,
+            },
+            orderBy: {
+                generatedAt: 'desc',
+            },
+            take: 50,
+        });
+    }
+
+    async acknowledge(
+        alertId: string,
+        userId: string,
+    ) {
+        const alert =
+            await this.prisma.alert.findUnique({
+                where: {
+                    id: alertId,
+                },
+            });
+
+        if (!alert) {
+            throw new BadRequestException(
+                'Alert not found',
+            );
+        }
+
+        if (alert.status === 'RESOLVED') {
+            throw new BadRequestException(
+                'Resolved alert cannot be acknowledged',
+            );
+        }
+
+        const user =
+            await this.prisma.user.findUnique({
+                where: {
+                    id: userId,
+                },
+                select: {
+                    id: true,
+                },
+            });
+
+        if (!user) {
+            throw new BadRequestException(
+                'User not found',
+            );
+        }
+
+        return this.prisma.alert.update({
+            where: {
+                id: alertId,
+            },
+            data: {
+                status: 'ACKNOWLEDGED',
+                acknowledgedAt: new Date(),
+                acknowledgedById: userId,
+            },
+        });
+    }
+
+    async resolve(
+        alertId: string,
+        userId: string,
+    ) {
+        const alert =
+            await this.prisma.alert.findUnique({
+                where: {
+                    id: alertId,
+                },
+            });
+
+        if (!alert) {
+            throw new BadRequestException(
+                'Alert not found',
+            );
+        }
+
+        if (alert.status === 'RESOLVED') {
+            throw new BadRequestException(
+                'Alert is already resolved',
+            );
+        }
+
+        const user =
+            await this.prisma.user.findUnique({
+                where: {
+                    id: userId,
+                },
+                select: {
+                    id: true,
+                },
+            });
+
+        if (!user) {
+            throw new BadRequestException(
+                'User not found',
+            );
+        }
+
+        return this.prisma.alert.update({
+            where: {
+                id: alertId,
+            },
+            data: {
+                status: 'RESOLVED',
+                resolvedAt: new Date(),
+                resolvedById: userId,
+            },
+        });
     }
 
     private getVitalValue(
